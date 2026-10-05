@@ -183,7 +183,14 @@ def step2_convert_tensorrt(batch_sizes=[1, 2, 4]):
 
     logger = trt.Logger(trt.Logger.WARNING)
     builder = trt.Builder(logger)
-    network = builder.create_network(1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
+    # TensorRT 10+ always uses explicit batch. TensorRT 11 also removed the
+    # FP16 builder flag, so precision has to come from a strongly typed network.
+    if hasattr(trt.NetworkDefinitionCreationFlag, "EXPLICIT_BATCH"):
+        network = builder.create_network(1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
+    elif hasattr(trt.NetworkDefinitionCreationFlag, "STRONGLY_TYPED"):
+        network = builder.create_network(1 << int(trt.NetworkDefinitionCreationFlag.STRONGLY_TYPED))
+    else:
+        network = builder.create_network()
     parser = trt.OnnxParser(network, logger)
 
     # Parse ONNX (use parse_from_file for external data support)
@@ -210,18 +217,16 @@ def step2_convert_tensorrt(batch_sizes=[1, 2, 4]):
     config = builder.create_builder_config()
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 4 << 30)  # 4GB
 
-    # Use FP16 precision for internal compute and I/O
-    # (FP16 is better optimized in TensorRT than BF16)
-    config.set_flag(trt.BuilderFlag.FP16)
-
-    # Set input/output layers to use FP16
-    for i in range(network.num_inputs):
-        inp = network.get_input(i)
-        inp.dtype = trt.float16
-    for i in range(network.num_outputs):
-        out = network.get_output(i)
-        out.dtype = trt.float16
-    print("  Using FP16 precision (compute + I/O)")
+    # TensorRT 11 takes precision from the ONNX types. Older versions need the flag.
+    if hasattr(trt.BuilderFlag, "FP16"):
+        config.set_flag(trt.BuilderFlag.FP16)
+        for i in range(network.num_inputs):
+            network.get_input(i).dtype = trt.float16
+        for i in range(network.num_outputs):
+            network.get_output(i).dtype = trt.float16
+        print("  Using FP16 precision (compute + I/O)")
+    else:
+        print("  Using ONNX tensor types (strongly typed network)")
 
     # Optimization profile for dynamic batch size
     profile = builder.create_optimization_profile()

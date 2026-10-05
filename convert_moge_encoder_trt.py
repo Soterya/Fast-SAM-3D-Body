@@ -161,21 +161,30 @@ def convert_trt():
     # Create builder
     logger = trt.Logger(trt.Logger.INFO)
     builder = trt.Builder(logger)
-    network = builder.create_network(1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
+    # TensorRT 10+ always uses explicit batch. TensorRT 11 also removed the
+    # FP16 builder flag, so precision has to come from a strongly typed network.
+    if hasattr(trt.NetworkDefinitionCreationFlag, "EXPLICIT_BATCH"):
+        network = builder.create_network(1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
+    elif hasattr(trt.NetworkDefinitionCreationFlag, "STRONGLY_TYPED"):
+        network = builder.create_network(1 << int(trt.NetworkDefinitionCreationFlag.STRONGLY_TYPED))
+    else:
+        network = builder.create_network()
     parser = trt.OnnxParser(network, logger)
 
-    # Parse ONNX
+    # Parse from the file path so external weights
+    # (moge_dinov2_encoder.onnx.data) resolve next to the ONNX file.
+    # parser.parse() on raw bytes looks for that file in the working directory.
     print(f"Parsing ONNX: {ONNX_PATH}")
-    with open(ONNX_PATH, "rb") as f:
-        if not parser.parse(f.read()):
-            for error in range(parser.num_errors):
-                print(f"ONNX parsing error: {parser.get_error(error)}")
-            return
+    if not parser.parse_from_file(os.path.abspath(ONNX_PATH)):
+        for error in range(parser.num_errors):
+            print(f"ONNX parsing error: {parser.get_error(error)}")
+        return
 
     # Configure builder
     config = builder.create_builder_config()
     config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, 4 << 30)  # 4GB
-    config.set_flag(trt.BuilderFlag.FP16)  # Enable FP16
+    if hasattr(trt.BuilderFlag, "FP16"):
+        config.set_flag(trt.BuilderFlag.FP16)
 
     # Build engine
     print("Building TensorRT engine (this may take a few minutes)...")
