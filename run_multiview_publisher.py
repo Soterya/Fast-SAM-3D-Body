@@ -882,20 +882,43 @@ class RealtimeMultiViewPublisher:
             if self.video_ended and latest_pose_source_ts is not None:
                 break
 
+    def _join_recording_thread(self):
+        if (
+            not self.record
+            or self.recording_thread is None
+            or not self.recording_thread.is_alive()
+        ):
+            return
+        logger.info("Waiting for recording thread to finish writing to disk...")
+        self.recording_thread.join()
+
+    def _open_video_writer(self, path, fps, width, height):
+        # avc1 selects the V4L2 hardware H.264 encoder, which is not present
+        # on this machine. mp4v is the software codec OpenCV can open.
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        writer = cv2.VideoWriter(path, fourcc, fps, (width, height))
+        if not writer.isOpened():
+            writer.release()
+            logger.error(f"Failed to open video writer: {path}")
+            return None
+        logger.info(f"Recording {path} with mp4v ({width}x{height} @ {fps:g}fps)")
+        return writer
+
     def _recording_loop(self):
         video_writers = [None for _ in range(len(self.camera_names))]
+        writer_failed = [False for _ in range(len(self.camera_names))]
         fps = self.source.fps
 
         while self.running:
             try:
                 frame_ts, frames = self.video_queue.get(timeout=0.05)
                 for idx, frame in enumerate(frames):
-                    if video_writers[idx] is None:
+                    if video_writers[idx] is None and not writer_failed[idx]:
                         h, w = frame.shape[:2]
-                        fourcc = cv2.VideoWriter_fourcc(*"avc1")
-                        video_writers[idx] = cv2.VideoWriter(
-                            self.video_out_paths[idx], fourcc, fps, (w, h)
+                        video_writers[idx] = self._open_video_writer(
+                            self.video_out_paths[idx], fps, w, h
                         )
+                        writer_failed[idx] = video_writers[idx] is None
                     if video_writers[idx] is not None:
                         video_writers[idx].write(frame)
             except queue.Empty:
@@ -924,12 +947,12 @@ class RealtimeMultiViewPublisher:
                 try:
                     frame_ts, frames = self.video_queue.get_nowait()
                     for idx, frame in enumerate(frames):
-                        if video_writers[idx] is None:
+                        if video_writers[idx] is None and not writer_failed[idx]:
                             h, w = frame.shape[:2]
-                            fourcc = cv2.VideoWriter_fourcc(*"avc1")
-                            video_writers[idx] = cv2.VideoWriter(
-                                self.video_out_paths[idx], fourcc, fps, (w, h)
+                            video_writers[idx] = self._open_video_writer(
+                                self.video_out_paths[idx], fps, w, h
                             )
+                            writer_failed[idx] = video_writers[idx] is None
                         if video_writers[idx] is not None:
                             video_writers[idx].write(frame)
                 except queue.Empty:
@@ -997,7 +1020,7 @@ class RealtimeMultiViewPublisher:
 
         if self.record:
             self.recording_thread = threading.Thread(
-                target=self._thread_main, args=(self._recording_loop,), daemon=True
+                target=self._thread_main, args=(self._recording_loop,), daemon=False
             )
             self.recording_thread.start()
 
@@ -1018,12 +1041,7 @@ class RealtimeMultiViewPublisher:
             self.worker_thread.join(timeout=1.0)
         if self.publish_thread.is_alive():
             self.publish_thread.join(timeout=1.0)
-        if (
-            self.record
-            and self.recording_thread is not None
-            and self.recording_thread.is_alive()
-        ):
-            self.recording_thread.join(timeout=5.0)
+        self._join_recording_thread()
 
     def stop(self):
         self.running = False
@@ -1034,13 +1052,7 @@ class RealtimeMultiViewPublisher:
             self.worker_thread.join(timeout=1.0)
         if self.publish_thread is not None and self.publish_thread.is_alive():
             self.publish_thread.join(timeout=1.0)
-        if (
-            self.record
-            and self.recording_thread is not None
-            and self.recording_thread.is_alive()
-        ):
-            logger.info("Waiting for recording thread to finish writing to disk...")
-            self.recording_thread.join(timeout=5.0)
+        self._join_recording_thread()
         self.publisher.close()
         self._log_final_stats()
 

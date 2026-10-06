@@ -427,16 +427,28 @@ class RealtimePublisher:
 
     def _recording_loop(self):
         video_writer = None
+        writer_failed = False
         fps = self.video_source.fps
         while self.running:
             try:
                 frame_ts, frame = self.video_queue.get(timeout=0.05)
-                if video_writer is None:
+                if video_writer is None and not writer_failed:
                     h, w = frame.shape[:2]
-                    fourcc = cv2.VideoWriter_fourcc(*"avc1")
+                    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
                     video_writer = cv2.VideoWriter(
                         self.video_out_path, fourcc, fps, (w, h)
                     )
+                    if not video_writer.isOpened():
+                        video_writer.release()
+                        video_writer = None
+                        writer_failed = True
+                        logger.error(
+                            f"Failed to open video writer: {self.video_out_path}"
+                        )
+                    else:
+                        logger.info(
+                            f"Recording {self.video_out_path} with mp4v ({w}x{h} @ {fps:g}fps)"
+                        )
                 if video_writer is not None:
                     video_writer.write(frame)
             except queue.Empty:
@@ -615,7 +627,7 @@ class RealtimePublisher:
 
         if self.record:
             self.recording_thread = threading.Thread(
-                target=self._recording_loop, daemon=True
+                target=self._recording_loop, daemon=False
             )
             self.recording_thread.start()
 
@@ -657,7 +669,7 @@ class RealtimePublisher:
             and self.recording_thread.is_alive()
         ):
             logger.info("Waiting for recording thread to finish writing to disk...")
-            self.recording_thread.join(timeout=5.0)
+            self.recording_thread.join()
 
         if self.capture_thread is not None and self.capture_thread.is_alive():
             self.capture_thread.join(timeout=1.0)
