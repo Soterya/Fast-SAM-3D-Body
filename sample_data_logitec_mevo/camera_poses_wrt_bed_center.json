@@ -1,0 +1,18 @@
+{
+  "color_camera_wrt_bed_center": {
+    "translation_m": [
+      -0.10754222304465123,
+      -1.4967947106845325,
+      1.3612704064828833
+    ],
+    "quaternion_xyzw": [
+      0.9361357108720185,
+      0.013021940594139312,
+      0.019265119862282232,
+      -0.35086922784706426
+    ]
+  },
+  "height_from_color_cam_center_to_floor_m": 1.3612704064828833,
+  "captured_at": "2026-10-07_16-41-26",
+  "source_file": "camera_poses_wrt_bed_center_2026-10-07_16-41-26.json"
+}
