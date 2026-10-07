@@ -1,0 +1,89 @@
+{
+  "captured_at": "2026-10-07_14-00-53",
+  "source": "live_kinect_apriltag_bed_pose",
+  "device_id": 0,
+  "color_resolution": "6",
+  "depth_mode": "3",
+  "kinect_fps": 15,
+  "apriltag_family": "tag36h11",
+  "apriltag_size_m": 0.22,
+  "apriltag_corner_mode": "bed-facing-marker-corner",
+  "apriltag_id_map": {
+    "tl": 0,
+    "tr": 1,
+    "br": 3,
+    "bl": 2
+  },
+  "frame_index": 1,
+  "color_camera_wrt_bed_center": {
+    "translation_m": [
+      987.6594831350707,
+      869.9904186245174,
+      1573.6638420607355
+    ],
+    "quaternion_xyzw": [
+      0.05568368557381527,
+      0.9291944210446077,
+      -0.2664533776197965,
+      -0.24999930523002473
+    ]
+  },
+  "depth_camera_wrt_bed_center": {
+    "translation_m": [
+      987.6853466625822,
+      869.9791292957455,
+      1573.6480842650087
+    ],
+    "quaternion_xyzw": [
+      0.06897733522278415,
+      0.9404934053824096,
+      -0.22312730975105843,
+      -0.24683696097022753
+    ]
+  },
+  "height_from_depth_cam_center_to_floor_m": 1573.6480842650087,
+  "calibration_debug": {
+    "plane_residual_rms_m": 6.471720861318414,
+    "plane_residual_m_tl_tr_br_bl": [
+      6.325051654803448,
+      6.59994741642398,
+      6.615461289715973,
+      6.340565528095415
+    ],
+    "corner_depths_mm_tl_tr_br_bl": [
+      2084,
+      2309,
+      2028,
+      1772
+    ],
+    "corner_points_color_m_tl_tr_br_bl": [
+      [
+        -340.8482971191406,
+        -183.24057006835938,
+        2084.0
+      ],
+      [
+        91.91610717773438,
+        -163.41839599609375,
+        2309.0
+      ],
+      [
+        266.240966796875,
+        400.6329345703125,
+        2028.0
+      ],
+      [
+        -146.4150390625,
+        391.49444580078125,
+        1772.0
+      ]
+    ],
+    "assigned_marker_ids": {
+      "tl": 0,
+      "tr": 1,
+      "br": 3,
+      "bl": 2
+    },
+    "notes": "Bed Z is up (plane normal toward the camera / ceiling). Recorder applies p_bed = R @ p_color + t. Corners from AprilTag bed-facing corners + Kinect depth."
+  }
+}

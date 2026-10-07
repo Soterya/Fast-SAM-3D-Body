@@ -1,0 +1,89 @@
+{
+  "captured_at": "2026-10-07_14-27-56",
+  "source": "live_kinect_apriltag_pose_bed_pose",
+  "device_id": 0,
+  "color_resolution": "3072p",
+  "depth_mode": "wfov-2x2",
+  "kinect_fps": 15,
+  "apriltag_family": "tag36h11",
+  "apriltag_size_m": 0.22,
+  "apriltag_corner_mode": "center",
+  "apriltag_id_map": {
+    "tl": 0,
+    "tr": 1,
+    "br": 3,
+    "bl": 2
+  },
+  "frame_index": 2,
+  "color_camera_wrt_bed_center": {
+    "translation_m": [
+      -1.1250722286017338,
+      -1.0616657245214856,
+      1.5045820104311018
+    ],
+    "quaternion_xyzw": [
+      0.9220853437308301,
+      -0.09542220111841535,
+      0.2815123705140033,
+      -0.24779832053123424
+    ]
+  },
+  "depth_camera_wrt_bed_center": {
+    "translation_m": [
+      -1.1490459253252092,
+      -1.0480993149469973,
+      1.4876736242780768
+    ],
+    "quaternion_xyzw": [
+      0.9324446933692645,
+      -0.11013022249191595,
+      0.2764879777627448,
+      -0.20487221884395926
+    ]
+  },
+  "height_from_depth_cam_center_to_floor_m": 1.4876736242780768,
+  "calibration_debug": {
+    "plane_residual_rms_m": 0.01357521434617744,
+    "plane_residual_m_tl_tr_br_bl": [
+      0.013349050444826229,
+      0.013095252202532631,
+      0.013791268742805243,
+      0.014045066985099042
+    ],
+    "corner_points_color_m_tl_tr_br_bl": [
+      [
+        -0.6168380747866752,
+        -0.8394903741740398,
+        2.266476534520542
+      ],
+      [
+        -0.04176550856056563,
+        -0.8646613977660981,
+        2.6987282037577636
+      ],
+      [
+        0.38150436224028333,
+        0.46963194310417333,
+        1.9910643545776439
+      ],
+      [
+        -0.1974841067366823,
+        0.49624867671537554,
+        1.6307411477311897
+      ]
+    ],
+    "assigned_marker_ids": {
+      "tl": 0,
+      "tr": 1,
+      "br": 3,
+      "bl": 2
+    },
+    "camera_params_fx_fy_cx_cy": [
+      1950.3687744140625,
+      1950.1080322265625,
+      2047.31982421875,
+      1560.0892333984375
+    ],
+    "notes": "Bed Z is up (plane normal toward the camera / ceiling). +X = right of bed, +Y = top/head of bed. Recorder applies p_bed = R @ p_color + t. 3D points from AprilTag pose (RGB + intrinsics + tag size); depth pixels unused. depth_camera pose via factory extrinsics."
+  }
+}

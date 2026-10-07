@@ -32,7 +32,24 @@ PUBLISH_ENDPOINT=${PUBLISH_ENDPOINT:-tcp://*:5557}
 PUBLISH_TOPIC=${PUBLISH_TOPIC:-kinect_master.mhr}
 PUBLISH_FPS=${PUBLISH_FPS:-10}
 MHR_PUBLISH_FRAME=${MHR_PUBLISH_FRAME:-bed}
-CAMERA_POSE_PATH=${CAMERA_POSE_PATH:-./sample_data/camera_poses_wrt_bed_center.json}
+CAMERA_POSE_DIR=${CAMERA_POSE_DIR:-./sample_data}
+# If CAMERA_POSE_PATH is unset, use the newest timestamped calibration JSON
+# (camera_poses_wrt_bed_center_YYYY-MM-DD_HH-MM-SS.json). Falls back to the
+# unversioned camera_poses_wrt_bed_center.json written by --also-latest.
+if [ -z "${CAMERA_POSE_PATH:-}" ]; then
+    LATEST_TIMESTAMPED=$(
+        ls -1t "${CAMERA_POSE_DIR}"/camera_poses_wrt_bed_center_????-??-??_??-??-??.json 2>/dev/null | head -n 1 || true
+    )
+    if [ -n "$LATEST_TIMESTAMPED" ]; then
+        CAMERA_POSE_PATH="$LATEST_TIMESTAMPED"
+    elif [ -f "${CAMERA_POSE_DIR}/camera_poses_wrt_bed_center.json" ]; then
+        CAMERA_POSE_PATH="${CAMERA_POSE_DIR}/camera_poses_wrt_bed_center.json"
+    else
+        echo "ERROR: No camera pose JSON found in ${CAMERA_POSE_DIR}." >&2
+        echo "Run: python calibrate_kinect_bed_pose.py --device-id ${DEVICE_ID} --also-latest" >&2
+        exit 1
+    fi
+fi
 MODEL=${MODEL:-facebook/sam-3d-body-dinov3}
 LOCAL_CHECKPOINT=${LOCAL_CHECKPOINT:-./checkpoints/sam-3d-body-dinov3}
 DETECTOR=${DETECTOR:-yolo_pose}
