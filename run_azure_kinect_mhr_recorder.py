@@ -484,6 +484,7 @@ def main():
             outputs = estimator.process_one_image(
                 rgb,
                 cam_int=cam_int,
+                inference_type = "body",
                 hand_box_source=args.hand_box_source,
             )
             if torch.cuda.is_available():
