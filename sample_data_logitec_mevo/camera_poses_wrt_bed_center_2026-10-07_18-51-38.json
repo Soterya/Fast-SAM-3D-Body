@@ -1,0 +1,88 @@
+{
+  "captured_at": "2026-10-07_18-51-38",
+  "source": "live_mevo_ndi_apriltag_pose_bed_pose",
+  "ndi_match": "MEVO-2G9TP",
+  "ndi_source_name": "MEVO-2G9TP (Mevo-2G9TP)",
+  "frame_size_wh": [
+    1080,
+    1920
+  ],
+  "rotate_90_ccw": true,
+  "intrinsics_path": "/home/rutwik/korus-ml-devel/devel/Fast-SAM-3D-Body/sample_data_logitec_mevo/intri.yml",
+  "apriltag_family": "tag36h11",
+  "apriltag_size_m": 0.22,
+  "apriltag_corner_mode": "center",
+  "apriltag_id_map": {
+    "tl": 0,
+    "tr": 1,
+    "br": 3,
+    "bl": 2
+  },
+  "bed_person_filter_volume": {
+    "width_m": 0.95,
+    "length_m": 1.9,
+    "z_min_m": -0.2,
+    "z_max_m": 0.6,
+    "half_width_m": 0.475,
+    "half_length_m": 0.95
+  },
+  "frame_index": 1,
+  "color_camera_wrt_bed_center": {
+    "translation_m": [
+      -0.08311745919908986,
+      -1.5830741438371367,
+      1.3629698286651397
+    ],
+    "quaternion_xyzw": [
+      0.9005061092562169,
+      0.03210853138158762,
+      0.01650983381849537,
+      -0.43334191441866504
+    ]
+  },
+  "height_from_color_cam_center_to_floor_m": 1.3629698286651397,
+  "calibration_debug": {
+    "plane_residual_rms_m": 0.0030430576466095663,
+    "plane_residual_m_tl_tr_br_bl": [
+      0.0030571018605091978,
+      0.0030924361412428803,
+      0.0030285758099765276,
+      0.0029932415292433165
+    ],
+    "corner_points_cam_m_tl_tr_br_bl": [
+      [
+        -0.206952124807996,
+        -0.44049795033480776,
+        2.7109532138838937
+      ],
+      [
+        0.4850214889819391,
+        -0.379849714811793,
+        2.708889221753494
+      ],
+      [
+        0.36209321524632054,
+        0.5966230123738713,
+        1.4678678333339363
+      ],
+      [
+        -0.3468069985432105,
+        0.5558526638932557,
+        1.463046442830985
+      ]
+    ],
+    "assigned_marker_ids": {
+      "tl": 0,
+      "tr": 1,
+      "br": 3,
+      "bl": 2
+    },
+    "camera_params_fx_fy_cx_cy": [
+      1232.577699,
+      1234.133119,
+      545.043983,
+      954.560686
+    ],
+    "notes": "Mevo RGB-only calibration (no depth). Bed Z is up (plane normal toward the camera). +X = right of bed, +Y = top/head of bed. Recorder applies p_bed = R @ p_cam + t. Frames / K are for the 90\u00b0 CCW rotated portrait image. Magenta wireframe is the on-bed person-filter AABB."
+  }
+}

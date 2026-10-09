@@ -1,0 +1,80 @@
+{
+  "captured_at": "2026-10-07_18-01-47",
+  "source": "live_mevo_ndi_apriltag_pose_bed_pose",
+  "ndi_match": "MEVO-2G9TP",
+  "ndi_source_name": "MEVO-2G9TP (Mevo-2G9TP)",
+  "frame_size_wh": [
+    1080,
+    1920
+  ],
+  "rotate_90_ccw": true,
+  "intrinsics_path": "/home/rutwik/korus-ml-devel/devel/Fast-SAM-3D-Body/sample_data_logitec_mevo/intri.yml",
+  "apriltag_family": "tag36h11",
+  "apriltag_size_m": 0.22,
+  "apriltag_corner_mode": "center",
+  "apriltag_id_map": {
+    "tl": 0,
+    "tr": 1,
+    "br": 3,
+    "bl": 2
+  },
+  "frame_index": 1,
+  "color_camera_wrt_bed_center": {
+    "translation_m": [
+      -1.6244381594519643,
+      -1.6922797510641674,
+      1.3158685661912595
+    ],
+    "quaternion_xyzw": [
+      0.8359531598386271,
+      -0.3230710324926056,
+      0.18683408772158064,
+      -0.40236854522343196
+    ]
+  },
+  "height_from_color_cam_center_to_floor_m": 1.3158685661912595,
+  "calibration_debug": {
+    "plane_residual_rms_m": 0.0017215204233793282,
+    "plane_residual_m_tl_tr_br_bl": [
+      0.001734375375107906,
+      0.001721485319757614,
+      0.0017086172959386704,
+      0.0017215073512901783
+    ],
+    "corner_points_cam_m_tl_tr_br_bl": [
+      [
+        -0.8735542219476391,
+        -0.6178491150933568,
+        2.9001442202427308
+      ],
+      [
+        -0.36248517897076227,
+        -0.8963932238763019,
+        3.3144612888179963
+      ],
+      [
+        0.7487794006296281,
+        -0.1434658957780173,
+        2.4196082690314626
+      ],
+      [
+        0.22520871323060593,
+        0.13698639059533307,
+        2.0130702402700615
+      ]
+    ],
+    "assigned_marker_ids": {
+      "tl": 0,
+      "tr": 1,
+      "br": 3,
+      "bl": 2
+    },
+    "camera_params_fx_fy_cx_cy": [
+      1232.577699,
+      1234.133119,
+      545.043983,
+      954.560686
+    ],
+    "notes": "Mevo RGB-only calibration (no depth). Bed Z is up (plane normal toward the camera). +X = right of bed, +Y = top/head of bed. Recorder applies p_bed = R @ p_cam + t. Frames / K are for the 90\u00b0 CCW rotated portrait image."
+  }
+}
