@@ -1,0 +1,106 @@
+{
+  "captured_at": "2026-10-09_12-47-07",
+  "source": "live_mevo_ndi_apriltag_pose_bed_pose",
+  "ndi_match": "MEVO-2G9TP",
+  "ndi_source_name": "MEVO-2G9TP (Mevo-2G9TP)",
+  "frame_size_wh": [
+    1080,
+    1920
+  ],
+  "rotate_90_ccw": true,
+  "intrinsics_path": "/home/rutwik/korus-ml-devel/devel/Fast-SAM-3D-Body/sample_data_logitec_mevo/intri.yml",
+  "apriltag_family": "tag36h11",
+  "apriltag_size_m": 0.22,
+  "apriltag_corner_mode": "center",
+  "apriltag_id_map": {
+    "tl": 0,
+    "tr": 1,
+    "br": 3,
+    "bl": 2
+  },
+  "detection_roi_xy": [
+    [
+      396.6219177246094,
+      725.659423828125
+    ],
+    [
+      793.416015625,
+      744.7070922851562
+    ],
+    [
+      959.7213134765625,
+      1546.6116943359375
+    ],
+    [
+      136.89743041992188,
+      1498.5867919921875
+    ]
+  ],
+  "detection_roi_order": [
+    "tl",
+    "tr",
+    "br",
+    "bl"
+  ],
+  "detection_roi_scale": 1.0,
+  "detection_roi_source": "outer_apriltag_corners",
+  "frame_index": 1,
+  "color_camera_wrt_bed_center": {
+    "translation_m": [
+      -0.07346495664573305,
+      -1.6108533978409911,
+      1.3590413924406586
+    ],
+    "quaternion_xyzw": [
+      0.9000070882080097,
+      0.021111900692570223,
+      0.013231338248635786,
+      -0.4351625679130009
+    ]
+  },
+  "height_from_color_cam_center_to_floor_m": 1.3590413924406586,
+  "calibration_debug": {
+    "plane_residual_rms_m": 0.00025099267077817434,
+    "plane_residual_m_tl_tr_br_bl": [
+      0.0002529284323992961,
+      0.00025101937689094836,
+      0.0002490494136152154,
+      0.0002509584691232319
+    ],
+    "corner_points_cam_m_tl_tr_br_bl": [
+      [
+        -0.24053338611918232,
+        -0.4486913011232321,
+        2.7384575707712493
+      ],
+      [
+        0.45935079998250017,
+        -0.41822124669887617,
+        2.746791377864494
+      ],
+      [
+        0.3602823432291512,
+        0.5891951452428471,
+        1.4708962018819944
+      ],
+      [
+        -0.34429978087012936,
+        0.5500364786031219,
+        1.4715793170397857
+      ]
+    ],
+    "assigned_marker_ids": {
+      "tl": 0,
+      "tr": 1,
+      "br": 3,
+      "bl": 2
+    },
+    "camera_params_fx_fy_cx_cy": [
+      1232.577699,
+      1234.133119,
+      545.043983,
+      954.560686
+    ],
+    "notes": "Mevo RGB-only calibration (no depth). Bed Z is up (plane normal toward the camera). +X = right of bed, +Y = top/head of bed. Recorder applies p_bed = R @ p_cam + t. Frames / K are for the 90\u00b0 CCW rotated portrait image. Pose fitting uses AprilTag centers. detection_roi_xy is the quadrilateral through the outer corner of each tag (tl, tr, br, bl) in that image, for later 2D box filtering."
+  }
+}

@@ -20,6 +20,42 @@ from sam_3d_body.utils import recursive_to
 from torchvision.transforms import ToTensor
 
 
+def filter_boxes_by_roi(boxes, keypoints, roi_polygon):
+    """Keep detections whose box center lies inside roi_polygon.
+
+    roi_polygon is an Nx2 polygon in the same image the detector ran on.
+    A center on the boundary is kept. keypoints is sliced with the same mask
+    so YOLO pose stays aligned with the surviving boxes.
+    """
+    boxes = np.asarray(boxes)
+    if boxes.size == 0:
+        return boxes, keypoints
+
+    poly = np.asarray(roi_polygon, dtype=np.float32).reshape(-1, 1, 2)
+    keep = []
+    for i, box in enumerate(boxes):
+        cx = float(box[0] + box[2]) * 0.5
+        cy = float(box[1] + box[3]) * 0.5
+        if cv2.pointPolygonTest(poly, (cx, cy), False) >= 0:
+            keep.append(i)
+
+    if keypoints is not None:
+        keypoints = np.asarray(keypoints)
+        if len(keypoints) != len(boxes):
+            raise ValueError(
+                f"YOLO keypoints ({len(keypoints)}) and boxes ({len(boxes)}) disagree"
+            )
+
+    if not keep:
+        empty_boxes = boxes[:0]
+        empty_keypoints = None if keypoints is None else keypoints[:0]
+        return empty_boxes, empty_keypoints
+
+    idx = np.asarray(keep, dtype=np.int64)
+    filtered_keypoints = None if keypoints is None else keypoints[idx]
+    return boxes[idx], filtered_keypoints
+
+
 class SAM3DBodyEstimator:
     def __init__(
         self,
@@ -203,6 +239,7 @@ class SAM3DBodyEstimator:
         use_mask: bool = False,
         inference_type: str = "full",
         hand_box_source: str = "body_decoder",  # "body_decoder" or "yolo_pose"
+        roi_polygon: Optional[np.ndarray] = None,
     ):
         """
         Perform model prediction in top-down format: assuming input is a full image.
@@ -222,6 +259,10 @@ class SAM3DBodyEstimator:
                 - body_decoder: use hand boxes from body decoder output (default)
                 - yolo_pose: use hand boxes computed from YOLO-Pose wrist keypoints
                   (requires detector to be yolo_pose type)
+            roi_polygon:
+                Optional Nx2 polygon in image pixels. When set, a detection is
+                kept only if its box center lies inside the polygon. The same
+                mask is applied to YOLO keypoints. None leaves detections unchanged.
         """
         process_total_start = time.time()
         print("      [process_one_image] Starting...")
@@ -250,6 +291,7 @@ class SAM3DBodyEstimator:
         t0 = time.time()
         yolo_pose_keypoints = None  # Will be set if using yolo_pose detector
         yolo_pose_body_boxes = None
+        from_yolo_pose = False
         if bboxes is not None:
             boxes = bboxes.reshape(-1, 4)
             self.is_crop = True
@@ -272,7 +314,7 @@ class SAM3DBodyEstimator:
             if isinstance(detection_result, dict):
                 boxes = detection_result["boxes"]
                 yolo_pose_keypoints = detection_result.get("keypoints", None)
-                yolo_pose_body_boxes = boxes.copy()  # Save body boxes for hand box computation
+                from_yolo_pose = True
                 print(f"Found boxes: {boxes}")
                 if yolo_pose_keypoints is not None:
                     print(f"Found keypoints shape: {yolo_pose_keypoints.shape}")
@@ -284,6 +326,18 @@ class SAM3DBodyEstimator:
         else:
             boxes = np.array([0, 0, width, height]).reshape(1, 4)
             self.is_crop = False
+
+        if roi_polygon is not None:
+            n_raw = len(boxes)
+            boxes, yolo_pose_keypoints = filter_boxes_by_roi(
+                boxes, yolo_pose_keypoints, roi_polygon
+            )
+            print(
+                f"        [process_one_image] detection ROI: kept {len(boxes)}/{n_raw} boxes"
+            )
+
+        if from_yolo_pose:
+            yolo_pose_body_boxes = np.asarray(boxes).copy()
         print(f"        [process_one_image] human_detection: {time.time() - t0:.4f}s")
 
         # If there are no detected humans, don't run prediction

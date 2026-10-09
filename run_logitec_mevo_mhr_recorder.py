@@ -45,15 +45,44 @@ def build_inference_k(k, width, height, focal, focal_scale, center_principal_poi
     return inference_k
 
 
-def load_color_camera_to_bed(path):
+def load_pose_file(path):
     with open(path, "r") as f:
-        data = json.load(f)
+        return json.load(f)
+
+
+def load_color_camera_to_bed(data):
     color = data["color_camera_wrt_bed_center"]
     rotation = Rotation.from_quat(
         np.asarray(color["quaternion_xyzw"], dtype=np.float64)
     ).as_matrix()
     translation = np.asarray(color["translation_m"], dtype=np.float64).reshape(3)
     return rotation, translation
+
+
+def load_detection_roi_xy(data, path):
+    """AprilTag bed polygon from the pose JSON. Missing key means no filter."""
+    raw = data.get("detection_roi_xy")
+    if raw is None:
+        print(
+            f"WARNING: {path} has no detection_roi_xy; "
+            "person detections will not be filtered.",
+            flush=True,
+        )
+        return None
+    roi = np.asarray(raw, dtype=np.float32).reshape(-1, 2)
+    if len(roi) < 3:
+        print(
+            f"WARNING: detection_roi_xy in {path} has {len(roi)} point(s); "
+            "need at least 3. Running unfiltered.",
+            flush=True,
+        )
+        return None
+    source = data.get("detection_roi_source", "polygon")
+    print(
+        f"Detection ROI ({len(roi)} points, {source}) from {path}",
+        flush=True,
+    )
+    return roi
 
 
 def mhr_arrays_from_output(person_output):
@@ -290,14 +319,27 @@ def main():
 
     color_r = None
     color_t = None
+    pose_data = None
     if args.mhr_publish_frame == "bed":
-        color_r, color_t = load_color_camera_to_bed(args.camera_pose_path)
+        pose_data = load_pose_file(args.camera_pose_path)
+        color_r, color_t = load_color_camera_to_bed(pose_data)
         print(
             f"Publishing/saving MHR in bed frame using camera pose: {args.camera_pose_path}",
             flush=True,
         )
+    elif os.path.isfile(args.camera_pose_path):
+        pose_data = load_pose_file(args.camera_pose_path)
+        print("Publishing/saving MHR in camera frame", flush=True)
     else:
         print("Publishing/saving MHR in camera frame", flush=True)
+        print(
+            f"WARNING: no pose file at {args.camera_pose_path}; detection ROI disabled.",
+            flush=True,
+        )
+
+    roi_polygon = None
+    if pose_data is not None:
+        roi_polygon = load_detection_roi_xy(pose_data, args.camera_pose_path)
 
     if args.save:
         os.makedirs(args.output_dir, exist_ok=True)
@@ -398,6 +440,7 @@ def main():
                 cam_int=cam_int,
                 inference_type="body",
                 hand_box_source=args.hand_box_source,
+                roi_polygon=roi_polygon,
             )
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
@@ -435,6 +478,9 @@ def main():
                     with latest_lock:
                         latest_state["payload"] = payload_tuple
                     published = True
+                elif roi_polygon is not None:
+                    with latest_lock:
+                        latest_state["payload"] = None
             rolling_fps = (
                 1.0 / float(np.mean(processing_times))
                 if processing_times

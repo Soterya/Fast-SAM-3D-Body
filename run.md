@@ -20,3 +20,14 @@ python run_multiview_publisher.py   --source video   --videos output/kinect_mult
 ```bash
 python view_smpl_record.py   --npz output/records/2026-10-05_19-07-30/smpl_data.npz   --smpl-model-path mhr2smpl/data/SMPL_NEUTRAL.pkl
 ```
+
+
+
+## Running the Logitec-MEVO Pipeline
+```bash
+# MHR Recorder and Publisher
+bash ./logitec_mevo_mhr_recorder.sh 
+
+# Optional Visualizer
+python view_smpl_zmq_open3d.py --input_type mhr --mhr_topic mevo.mhr --frame bed --camera_pose_path sample_data_logitec_mevo/camera_poses_wrt_bed_center.json
+```

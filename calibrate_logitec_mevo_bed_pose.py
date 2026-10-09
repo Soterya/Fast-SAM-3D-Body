@@ -294,6 +294,54 @@ def fit_bed_frame_z_up(points_cam: dict[str, np.ndarray]) -> tuple[np.ndarray, n
     return r_bed_cam, t_bed_cam, debug
 
 
+def detection_roi_xy_from_outer_tag_corners(
+    assigned: dict[str, MarkerDetection],
+    scale: float = 1.0,
+) -> list[list[float]]:
+    """Bed quadrilateral through the outer corner of each AprilTag.
+
+    Pose fitting uses tag centers. The ROI uses, on each tag, the detected
+    corner farthest from the centroid of the four centers, so the polygon
+    reaches the outer edge of the tags and covers the full bed surface.
+    Order is tl, tr, br, bl. scale expands that polygon about its centroid.
+    """
+    centers = np.stack(
+        [assigned[k].center.astype(np.float64) for k in CORNER_ORDER], axis=0
+    )
+    bed_uv = centers.mean(axis=0)
+    outer = []
+    for key in CORNER_ORDER:
+        corners = assigned[key].corners.astype(np.float64)
+        dist = np.linalg.norm(corners - bed_uv, axis=1)
+        outer.append(corners[int(np.argmax(dist))])
+    pts = np.stack(outer, axis=0)
+    if abs(float(scale) - 1.0) > 1e-6:
+        center = pts.mean(axis=0)
+        pts = center + float(scale) * (pts - center)
+    return [[float(x), float(y)] for x, y in pts]
+
+
+def draw_detection_roi(
+    image_bgr: np.ndarray,
+    roi_xy: list[list[float]],
+) -> np.ndarray:
+    """Draw the saved detection ROI in magenta so it is visible on the debug JPEG."""
+    poly = np.round(np.asarray(roi_xy, dtype=np.float64)).astype(np.int32).reshape(-1, 1, 2)
+    cv2.polylines(image_bgr, [poly], isClosed=True, color=(255, 0, 255), thickness=6)
+    anchor = tuple(poly.reshape(-1, 2)[0])
+    cv2.putText(
+        image_bgr,
+        "DETECTION ROI",
+        (anchor[0] + 12, max(36, anchor[1] - 16)),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1.0,
+        (255, 0, 255),
+        3,
+        cv2.LINE_AA,
+    )
+    return image_bgr
+
+
 def pose_dict(r_bed_sensor: np.ndarray, t_bed_sensor: np.ndarray) -> dict:
     quat_xyzw = Rotation.from_matrix(r_bed_sensor).as_quat().astype(np.float64)
     return {
@@ -578,6 +626,11 @@ def capture_and_calibrate(args: argparse.Namespace) -> int:
                     tipLength=0.12,
                 )
 
+            detection_roi_xy = detection_roi_xy_from_outer_tag_corners(
+                assigned, scale=float(args.roi_scale)
+            )
+            draw_detection_roi(rgb_overlay, detection_roi_xy)
+
             cv2.imwrite(str(debug_rgb_path), rgb_overlay)
             save_axes_plot(debug_axes_path, frame_debug, t_bed_cam)
 
@@ -593,6 +646,10 @@ def capture_and_calibrate(args: argparse.Namespace) -> int:
                 "apriltag_size_m": float(args.tag_size),
                 "apriltag_corner_mode": args.corner_mode,
                 "apriltag_id_map": {c: int(marker_id_map[c]) for c in CORNER_ORDER},
+                "detection_roi_xy": detection_roi_xy,
+                "detection_roi_order": list(CORNER_ORDER),
+                "detection_roi_scale": float(args.roi_scale),
+                "detection_roi_source": "outer_apriltag_corners",
                 "frame_index": int(frame_idx),
                 "color_camera_wrt_bed_center": pose_dict(r_bed_cam, t_bed_cam),
                 "height_from_color_cam_center_to_floor_m": float(abs(t_bed_cam[2])),
@@ -613,7 +670,11 @@ def capture_and_calibrate(args: argparse.Namespace) -> int:
                         "Bed Z is up (plane normal toward the camera). "
                         "+X = right of bed, +Y = top/head of bed. "
                         "Recorder applies p_bed = R @ p_cam + t. "
-                        "Frames / K are for the 90° CCW rotated portrait image."
+                        "Frames / K are for the 90° CCW rotated portrait image. "
+                        "Pose fitting uses AprilTag centers. "
+                        "detection_roi_xy is the quadrilateral through the outer "
+                        "corner of each tag (tl, tr, br, bl) in that image, "
+                        "for later 2D box filtering."
                     ),
                 },
             }
@@ -628,6 +689,11 @@ def capture_and_calibrate(args: argparse.Namespace) -> int:
                     "height_from_color_cam_center_to_floor_m": payload[
                         "height_from_color_cam_center_to_floor_m"
                     ],
+                    "detection_roi_xy": payload["detection_roi_xy"],
+                    "detection_roi_order": payload["detection_roi_order"],
+                    "detection_roi_scale": payload["detection_roi_scale"],
+                    "detection_roi_source": payload["detection_roi_source"],
+                    "frame_size_wh": payload["frame_size_wh"],
                     "captured_at": stamp,
                     "source_file": pose_path.name,
                 }
@@ -642,6 +708,12 @@ def capture_and_calibrate(args: argparse.Namespace) -> int:
             print(
                 f"  plane RMS : {frame_debug['plane_residual_rms_m']*1000:.2f} mm | "
                 f"cam height (bed Z) = {t_bed_cam[2]:.3f} m"
+            )
+            print(
+                f"  detection ROI outer corners (tl,tr,br,bl, scale={args.roi_scale:.3f}): "
+                + ", ".join(
+                    f"({p[0]:.1f},{p[1]:.1f})" for p in detection_roi_xy
+                )
             )
             if args.also_latest:
                 print(f"  latest    : {latest}")
@@ -715,6 +787,15 @@ def main() -> int:
         action=argparse.BooleanOptionalAction,
         default=True,
     )
+    parser.add_argument(
+        "--roi-scale",
+        type=float,
+        default=1.0,
+        help=(
+            "Scale the outer-tag-corner ROI about its centroid before saving "
+            "detection_roi_xy. 1.0 is the outer corner of each AprilTag."
+        ),
+    )
     parser.add_argument("--max-frames", type=int, default=180)
     parser.add_argument(
         "--show",
@@ -722,6 +803,8 @@ def main() -> int:
         help="Show a live preview while waiting for four tags",
     )
     args = parser.parse_args()
+    if args.roi_scale <= 0:
+        parser.error("--roi-scale must be > 0")
     return capture_and_calibrate(args)
 
 
